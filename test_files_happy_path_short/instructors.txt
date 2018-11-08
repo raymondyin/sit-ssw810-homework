@@ -1,0 +1,3 @@
+98765	Einstein, A	SFEN
+98764	Feynman, R	SFEN
+98763	Newton, I	SFEN
