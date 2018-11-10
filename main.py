@@ -190,6 +190,7 @@ def process_data_files(repo, path):
     instructor_file_path = ''
     grade_file_path = ''
     major_file_path = ''
+
     for file_path in p.Path(path).rglob("*.txt"):
         path_str = str(file_path)
         # print(path_str.find("students.txt"))
@@ -215,12 +216,15 @@ def process_data_files(repo, path):
         for dept, flag, course in parse_lines_from_file(major_file_path, 3, '\t'):
             repo.add_major(dept, flag, course)
 
+    # I understand that I can omit this try/except block if I want to have the program terminated by the ValueError
+    # raised from "parse_lines_from_file()" function. I just have this structure for future refactoring in case the
+    # requirement is changed to something like "handling invalid date without interrupting the program".
     except ValueError as e:
-        # I understand that I can omit this try/except block if I want to have the program terminated by the ValueError
-        # raised from "parse_lines_from_file()" function. I just have this structure for future refactoring in case the
-        # requirement is changed to something like "handling invalid date without interrupting the program".
         print(e)
         raise ValueError
+    except FileNotFoundError as e:
+        print(e)
+        raise FileNotFoundError
 
     repo.join_data()
 

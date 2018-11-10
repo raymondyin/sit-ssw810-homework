@@ -10,7 +10,7 @@ https://sit.instructure.com/courses/28343/assignments/118685
 """
 
 import unittest
-import HW09XiWei_Yin as h
+import main as h
 
 # TODO: read below
 '''Use your file reader generator from HW08 to read the students, instructors, and grades files into appropriate data 
@@ -38,11 +38,11 @@ class TestStudent(unittest.TestCase):
         """ This test function indirectly tested get_row() function. """
         # test creating default mysterious student
         new_stud = h.Student()
-        self.assertEqual(new_stud.get_row(), ['0', 'anonymous', []])
+        self.assertEqual(new_stud.get_row(), ['0', 'anonymous', [], set(), set()])
 
         # test creating customized student
         cus_stud = h.Student("8888", "Raymond Yin", "software engineering")
-        self.assertEqual(cus_stud.get_row(), ["8888", 'Raymond Yin', []])
+        self.assertEqual(cus_stud.get_row(), ["8888", 'Raymond Yin', [], set(), set()])
         self.assertEqual(cus_stud.major, "software engineering")
 
     def test_add_course(self):
@@ -52,7 +52,7 @@ class TestStudent(unittest.TestCase):
 
         # test creating customized student
         cus_stud = h.Student("8888", "Raymond Yin", "software engineering")
-        self.assertEqual(cus_stud.get_row(), ["8888", 'Raymond Yin', []])
+        self.assertEqual(cus_stud.get_row(), ["8888", 'Raymond Yin', [], set(), set()])
         self.assertEqual(cus_stud.major, "software engineering")
 
 
@@ -78,7 +78,7 @@ class TestOtherNuances(unittest.TestCase):
         repo = h.Repository("stevens")
         h.process_data_files(repo, dir_path)
 
-        self.assertEqual(repo.students['10103'].get_row(), ['10103', 'Baldwin, C', ['SSW 564', 'SSW 567']])
+        self.assertEqual(repo.students['10103'].get_row(), ['10103', 'Baldwin, C', ['SSW 564', 'SSW 567'], {'SSW 555', 'SSW 540'}, {'CS 545', 'CS 501', 'CS 513'}])
 
 
 if __name__ == '__main__':
