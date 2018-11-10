@@ -48,7 +48,7 @@ class TestStudent(unittest.TestCase):
     def test_add_course(self):
         # test creating default mysterious student
         new_stud = h.Student()
-        self.assertEqual(new_stud.get_row(), ['0', 'anonymous', []])
+        self.assertEqual(new_stud.get_row(), ['0', 'anonymous', [], set(), set()])
 
         # test creating customized student
         cus_stud = h.Student("8888", "Raymond Yin", "software engineering")

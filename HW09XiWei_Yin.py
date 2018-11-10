@@ -24,6 +24,7 @@ class Repository:
         self.instructors = defaultdict(Instructor)  # key: instructor's cwid | value: Instructor
         self.students = defaultdict(Student)  # key: student's cwid | value: Student
         self.grades = defaultdict(list)  # key: student's cwid and/or instructor's cwid | value: [Grade, ..]
+        self.majors = defaultdict(Major)  # key: str of dept | value: Major
 
     def add_instructor(self, cwid, name, dept):
         self.instructors[cwid] = Instructor(cwid, name, dept)
@@ -34,6 +35,13 @@ class Repository:
     def add_grade(self, stud_cwid, course, letter_grade, inst_cwid):
         self.grades[stud_cwid].append(Grade(stud_cwid, course, letter_grade, inst_cwid))
         self.grades[inst_cwid].append(Grade(stud_cwid, course, letter_grade, inst_cwid))
+
+    def add_major(self, dept, flag, course):
+        self.majors[dept].dept = dept
+        if flag == 'R':
+            self.majors[dept].required.add(course)
+        elif flag == 'E':
+            self.majors[dept].electives.add(course)
 
     def join_data(self):
         for cwid in self.students:
@@ -46,11 +54,17 @@ class Repository:
                 if grade.is_teaching(cwid):
                     self.instructors[cwid].add_course(grade.course, grade.stud_cwid)
 
+        for student in self.students.values():
+            student.required_remain = self.majors[student.major].required - set(student.completed_courses.keys())
+            student.electives_remain = self.majors[student.major].electives - set(student.completed_courses.keys())
+
     def get_table(self, data_type):
         if data_type == "student":
             return self._get_student_table()
         elif data_type == "instructor":
             return self._get_instructor_table()
+        elif data_type == "major":
+            return self._get_major_table()
         else:
             return "No such type of table."
 
@@ -72,21 +86,30 @@ class Repository:
 
         return table.get_string()
 
+    def _get_major_table(self):
+        table = PrettyTable(field_names=Major.labels)
+        for major in self.majors.values():
+            table.add_row((major.dept, major.required, major.electives))
+
+        return table.get_string()
+
 
 class Student:
     """class Student to hold all of the details of a student, including a defaultdict(str) to store the classes taken
     and the grade where the course is the key and the grade is the value."""
 
-    labels = ["cwid", "Name", "Completed Courses"]
+    labels = ["cwid", "Name", "Completed Courses", "Remaining Required", "Remaining Electives"]
 
     def __init__(self, cwid='0', name="anonymous", major="unknown"):
         self.cwid = cwid
         self.name = name
         self.major = major
         self.completed_courses = defaultdict(str)  # key: course code | value: completed course letter grade
+        self.required_remain = set()
+        self.electives_remain = set()
 
     def get_row(self):
-        return [self.cwid, self.name, sorted(self.completed_courses.keys())]
+        return [self.cwid, self.name, sorted(self.completed_courses.keys()), self.required_remain, self.electives_remain]
 
     def add_course(self, course, letter_grade):
         self.completed_courses[course] = letter_grade
@@ -124,6 +147,14 @@ class Grade:
         return self.inst_cwid == inst_cwid
 
 
+class Major:
+    labels = ["Dept", "Required", "Electives"]
+
+    def __init__(self):
+        self.dept = ''
+        self.required = set()
+        self.electives = set()
+
 def handle_string_input_and_set_path(string_input=''):
     """ (the following code is from homework 8 with modification) Prompt to get user's directory string input to set
     current path; exceptions are handled. Input string 'default' will change the working directory to current directory
@@ -158,7 +189,7 @@ def process_data_files(repo, path):
     student_file_path = ''
     instructor_file_path = ''
     grade_file_path = ''
-
+    major_file_path = ''
     for file_path in p.Path(path).rglob("*.txt"):
         path_str = str(file_path)
         # print(path_str.find("students.txt"))
@@ -168,6 +199,8 @@ def process_data_files(repo, path):
             instructor_file_path = path_str
         if path_str.find("grades.txt") != -1:
             grade_file_path = path_str
+        if path_str.find("majors.txt") != -1:
+            major_file_path = path_str
 
     try:
         for stud_cwid, name, major in parse_lines_from_file(student_file_path, 3, '\t'):
@@ -178,6 +211,10 @@ def process_data_files(repo, path):
 
         for stud_cwid, course, grade, inst_cwid in parse_lines_from_file(grade_file_path, 4, '\t'):
             repo.add_grade(stud_cwid, course, grade, inst_cwid)
+
+        for dept, flag, course in parse_lines_from_file(major_file_path, 3, '\t'):
+            repo.add_major(dept, flag, course)
+
     except ValueError as e:
         # I understand that I can omit this try/except block if I want to have the program terminated by the ValueError
         # raised from "parse_lines_from_file()" function. I just have this structure for future refactoring in case the
@@ -271,6 +308,8 @@ def main():
     stevens_repo = Repository("Stevens Institute of Technology")
     process_data_files(stevens_repo, curr_dir_path)
     # getting results
+    print("Major Summary")
+    print(stevens_repo.get_table("major"))
     print("Student Summary")
     print(stevens_repo.get_table("student"))
     print("Instructor Summary")
