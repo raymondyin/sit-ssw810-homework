@@ -11,10 +11,12 @@ https://sit.instructure.com/courses/28343/assignments/118685
 
 import os
 import pathlib as p
-
+import sqlite3
 from collections import defaultdict
 from prettytable import PrettyTable
 from HW08_dir.HW08XiWei_Yin import parse_lines_from_file
+
+
 
 
 class Repository:
@@ -62,7 +64,7 @@ class Repository:
         if data_type == "student":
             return self._get_student_table()
         elif data_type == "instructor":
-            return self._get_instructor_table()
+            return self._get_instructor_table_from_DB()
         elif data_type == "major":
             return self._get_major_table()
         else:
@@ -75,6 +77,7 @@ class Repository:
         return table.get_string()
 
     def _get_instructor_table(self):
+        """ Deprecated starting at HW11"""
         table = PrettyTable(field_names=Instructor.labels)
         # TODO: the table needs to be displayed in sequence of a sorted list by instructor's name (can't figure out
         # how to use sorted() in this case, since the value is Instructor and to refer to its "name" attribute, I need
@@ -85,6 +88,26 @@ class Repository:
                 table.add_row(row)
 
         return table.get_string()
+
+    def _get_instructor_table_from_DB(self):
+        DB_FILE = "/Users/ramen/PycharmProjects/SSW810/homeworks/homework_repo/810_startup.db"
+
+        if os.path.isfile(DB_FILE):
+            try:
+                table = PrettyTable(field_names=Instructor.labels)
+
+                with sqlite3.connect(DB_FILE) as db:
+                    query_str = """SELECT i.CWID, i.Name, i.Dept, g.Course, count(*) AS Students FROM Instructors i 
+                                JOIN Grades g on i.CWID=g.Instructor_CWID GROUP BY g.Course order by i.Name;"""
+
+                    for row in db.execute(query_str):
+                        table.add_row(row)
+            except Exception as e:
+                print(e)
+            else:
+                return table.get_string()
+        else:
+            raise FileNotFoundError
 
     def _get_major_table(self):
         table = PrettyTable(field_names=Major.labels)
@@ -109,7 +132,8 @@ class Student:
         self.electives_remain = set()
 
     def get_row(self):
-        return [self.cwid, self.name, sorted(self.completed_courses.keys()), self.required_remain, self.electives_remain]
+        return [self.cwid, self.name, sorted(self.completed_courses.keys()), self.required_remain,
+                self.electives_remain]
 
     def add_course(self, course, letter_grade):
         self.completed_courses[course] = letter_grade
@@ -154,6 +178,7 @@ class Major:
         self.dept = ''
         self.required = set()
         self.electives = set()
+
 
 def handle_string_input_and_set_path(string_input=''):
     """ (the following code is from homework 8 with modification) Prompt to get user's directory string input to set
@@ -311,6 +336,7 @@ def main():
     curr_dir_path = handle_string_input_and_set_path("default")  # the parameter can be customized
     stevens_repo = Repository("Stevens Institute of Technology")
     process_data_files(stevens_repo, curr_dir_path)
+
     # getting results
     print("Major Summary")
     print(stevens_repo.get_table("major"))
